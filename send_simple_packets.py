@@ -15,24 +15,6 @@ def add_padding(packet):
     return packet
 
 
-def create_tcp_packets(eth_src, eth_dst, ip_src, ip_dst, tagged_vlan=0, port_src=[1], port_dst=[1]):
-    eth = Ether(src=eth_src, dst=eth_dst) / Dot1Q(vlan=tagged_vlan) if tagged_vlan else Ether(src=eth_src, dst=eth_dst)
-    packets = add_padding(eth / IP(src=ip_src, dst=ip_dst) / TCP(sport=port_src, dport=port_dst))
-    return packets
-
-
-def create_udp_packets(eth_src, eth_dst, ip_src, ip_dst, tagged_vlan=0, port_src=[1], port_dst=[1]):
-    eth = Ether(src=eth_src, dst=eth_dst) / Dot1Q(vlan=tagged_vlan) if tagged_vlan else Ether(src=eth_src, dst=eth_dst) 
-    packets = add_padding(eth / IP(src=ip_src, dst=ip_dst) / UDP(sport=port_src, dport=port_dst))
-    return packets
-
-
-def create_icmp_packets(eth_src, eth_dst, ip_src, ip_dst, tagged_vlan=0):
-    eth = Ether(src=eth_src, dst=eth_dst) / Dot1Q(vlan=tagged_vlan) if tagged_vlan else Ether(src=eth_src, dst=eth_dst)   
-    packets = add_padding(eth / IP(src=ip_src, dst=ip_dst)  / ICMP())
-    return packets
-
-
 def create_parser():
     parser = argparse.ArgumentParser(
         description="Compare pcap files for lag|ecmp hashing tests"
@@ -48,9 +30,10 @@ def create_parser():
     parser.add_argument("--tcp", action="store_true")
     parser.add_argument("--udp", action="store_true")
     parser.add_argument("--icmp", action="store_true")
+    parser.add_argument("--ip", action="store_true")
     parser.add_argument("--port_src", help="list port src",
                         nargs="+", type=int, default=[1])
-    parser.add_argument("--port_dst", help="list port src",
+    parser.add_argument("--port_dst", help="list port dst",
                         nargs="+", type=int, default=[1])
     parser.add_argument("--count", help="Total repeating", default=1, type=int)
     return parser
@@ -61,40 +44,23 @@ if __name__ == "__main__":
     parser = create_parser()
     args = parser.parse_args()
     packets = []
+    eth = (
+        Ether(src=args.mac_src, dst=args.mac_dst) / Dot1Q(vlan=args.vlan) if args.vlan
+        else Ether(src=args.mac_src, dst=args.mac_dst)
+    )
+    ip = IP(src=args.ip_src, dst=args.ip_dst)
     if args.tcp:
-        packets.append(
-            create_tcp_packets(
-                args.mac_src,
-                args.mac_dst,
-                args.ip_src,
-                args.ip_dst,
-                tagged_vlan=args.vlan,
-                port_src=args.port_src,
-                port_dst=args.port_dst
-            )
+        packets.extend(
+            add_padding(eth / ip / TCP(sport=args.port_src, dport=args.port_dst))
         )
     if args.udp:
-        packets.append(
-            create_udp_packets(
-                args.mac_src,
-                args.mac_dst,
-                args.ip_src,
-                args.ip_dst,
-                tagged_vlan=args.vlan,
-                port_src=args.port_src,
-                port_dst=args.port_dst
-            )
+        packets.extend(
+            add_padding(eth / ip / UDP(sport=args.port_src, dport=args.port_dst))
         )
     if args.icmp:
-        packets.append(
-            create_tcp_packets(
-                args.mac_src,
-                args.mac_dst,
-                args.ip_src,
-                args.ip_dst,
-                tagged_vlan=args.vlan,
-            )
-        )
+        packets.extend(add_padding(eth / ip / ICMP()))
+    if args.ip:
+        packets.extend(add_padding(eth / ip))
 
     sendpfast(
         packets,
