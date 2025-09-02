@@ -44,6 +44,29 @@ def generate_pvst_bpdu(
     )
 
 
+def generate_stp_bpdu(
+    bridge_mac="00:00:00:00:00:01", root_mac="00:00:00:00:00:01",
+    bridge_prio=32768, root_prio=32768, vlan_id=1, path_cost=0,
+    port_priority=0x8000, port_num=1, flags=0x00):
+    payload = (
+        LLC(dsap=0x42, ssap=0x42, ctrl=3)
+        / STP(
+            rootid=root_prio + vlan_id,
+            rootmac=root_mac,
+            pathcost=path_cost,
+            bridgeid=bridge_prio + vlan_id,
+            bridgemac=bridge_mac,
+            portid=port_priority+port_num,
+            bpduflags=flags,
+            age=0.0,
+        )
+    )
+    return (
+        Ether(src=bridge_mac, dst="01:80:c2:00:00:00", type=len(payload))
+        / payload 
+    )
+
+
 def handle_bpdu(pkt, iface1, iface2, cost1, cost2, bridge_mac1='11:11:11:11:11:11', bridge_mac2='11:11:11:11:11:11', port_prio1=0x8000, port_prio2=0x8000, port_num1=1, port_num2=2):
     print("Захватили пакет")
     if STP in pkt:
