@@ -2,11 +2,15 @@ from scapy.layers.l2 import Ether, Dot1Q, LLC, SNAP, STP
 from scapy.all import hexdump, Packet, ShortField, ByteField, sniff, sendp
 from functools import partial
 from time import sleep
+import hmac
+import hashlib
+import struct
 
 # BPDU flags
 TCN = 0x01
 TCA = 0x80
 
+MSTP_KEY = bytes.fromhex('13AC06A62E47FD51F95D2BA243CD0346') # 802.1Q-2022
 
 class STP_OriginatingVLAN(Packet):
     name = "STP Originating VLAN TLV"
@@ -16,6 +20,28 @@ class STP_OriginatingVLAN(Packet):
         ShortField("length", 0x0002),
         ShortField("vlan", 1)
     ]
+
+
+def generate_mstp_configuration_digest(instance_meta):
+    """
+    На вход подается словарь вида:
+    {
+        instance_number: [vla_idn...]
+    }
+    Пример для всех VLAN в 1ом instance
+    {
+        1: [i for i in range(1, 4095)]
+    }
+    Вывод: ac36177f50283cd4b83821d8ab26de62
+    """
+    mst_configuration_table = [b'\x00\x00']*4096
+    for instance, vlan_range in instance_meta.items():
+        for vlan_id in vlan_range:
+            mst_configuration_table[vlan_id] = struct.pack('>H', instance)
+
+    message = b''.join(mst_configuration_table)
+    hmac_object = hmac.new(MSTP_KEY, message, hashlib.md5)
+    return hmac_object.hexdigest()
 
 
 def generate_pvst_bpdu(
