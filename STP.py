@@ -7,7 +7,7 @@ import hashlib
 import struct
 
 # BPDU flags
-TCN = 0x01
+TC = 0x01
 TCA = 0x80
 
 MSTP_KEY = bytes.fromhex('13AC06A62E47FD51F95D2BA243CD0346') # 802.1Q-2022
@@ -107,7 +107,7 @@ def generate_pvst_bpdu(
 def generate_pvst_tcn(bridge_mac="00:00:00:00:00:01", vlan_id=10):
     payload = (
         LLC(dsap=0xAA, ssap=0xAA, ctrl=3)
-        / SNAP(OUI=0x00000C, code=0x010B) 
+        / SNAP(OUI=0x00000C, code=0x010B)
         / STP_TCN()
         / STP_OriginatingVLAN(vlan=vlan_id)
     )
@@ -152,12 +152,12 @@ def handle_bpdu(pkt, iface1, iface2, cost1, cost2, bridge_mac1='11:11:11:11:11:1
         if pkt[STP].bpdutype == 0x80:
             # При получении TCN
             print("Тип BPDU Topology Change 0x80")
-            sendp(generate_pvst_bpdu(bridge_mac=bridge_mac1, path_cost=cost1, port_priority=port_prio1, port_num=port_num1, flags=TCN+TCA), iface=iface1, verbose=True)
-            sendp(generate_pvst_bpdu(bridge_mac=bridge_mac2, path_cost=cost2, port_priority=port_prio2, port_num=port_num2, flags=TCN), iface=iface2, verbose=True)
+            sendp(generate_pvst_bpdu(bridge_mac=bridge_mac1, path_cost=cost1, port_priority=port_prio1, port_num=port_num1, flags=TC+TCA), iface=iface1, verbose=True)
+            sendp(generate_pvst_bpdu(bridge_mac=bridge_mac2, path_cost=cost2, port_priority=port_prio2, port_num=port_num2, flags=TC), iface=iface2, verbose=True)
             while True:
                 sleep(2)
-                sendp(generate_pvst_bpdu(bridge_mac=bridge_mac1, path_cost=cost1, port_priority=port_prio1, port_num=port_num1, flags=TCN), iface=iface1, verbose=True)
-                sendp(generate_pvst_bpdu(bridge_mac=bridge_mac2, path_cost=cost2, port_priority=port_prio2, port_num=port_num2, flags=TCN), iface=iface2, verbose=True)
+                sendp(generate_pvst_bpdu(bridge_mac=bridge_mac1, path_cost=cost1, port_priority=port_prio1, port_num=port_num1, flags=TC), iface=iface1, verbose=True)
+                sendp(generate_pvst_bpdu(bridge_mac=bridge_mac2, path_cost=cost2, port_priority=port_prio2, port_num=port_num2, flags=TC), iface=iface2, verbose=True)
 
 
 def change_root(
