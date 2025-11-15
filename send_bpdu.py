@@ -58,6 +58,13 @@ class STP_TCN(Packet):
     ]
 
 
+class HexDigestField(StrFixedLenField):
+    def i2repr(self, pkt, x):
+        if isinstance(x, bytes):
+            return x.hex()
+        return repr(x)
+
+
 class MST_Header(Packet):
     name = "MST STP Extension"
     fields_desc = [
@@ -65,7 +72,8 @@ class MST_Header(Packet):
         ByteField("config_id_format_selector", 0),
         StrFixedLenField("name", b"\x00" * 32, length=32),
         ShortField("revision", 0),
-        StrFixedLenField("digest", b"\x00" * 16, length=16),
+        # StrFixedLenField("digest", b"\x00" * 16, length=16),
+        HexDigestField("digest", b"\x00" * 16, length=16),
         IntField("cist_internal_path_cost", 0),
         ShortField("cist_bridgeid", 0),
         MACField("cist_bridge_mac", ETHER_ANY),
@@ -407,8 +415,15 @@ def create_parser():
             PROPOSAL = 0x2
             """
     )
-    parser.add_argument('-c', '--count', default=1, type=int,
+    parser.add_argument('-c', '--count', default=None, type=int,
                         help="Total repeating")
+    parser.add_argument('-i', '--inter', help="Interval between bpdu",
+                        default=2.0, type=float)
+    parser.add_argument('-l', '--loop', help="Loop", action='store_true')
+    parser.add_argument('--hex', help='Pring BPDU Hex output',
+                        action='store_true')
+    parser.add_argument('-v', '--verbose', help='human readable',
+                        action='store_true')
     return parser
 
 
@@ -503,7 +518,11 @@ if __name__ == "__main__":
             instances=instance_params,
             cist_internal_path_cost=args.cist_internal_path_cost,
             cist_remaining_hops=args.cist_remaining_hops,
-        )
-    print("Generated BPDU:")
-    hexdump(bpdu)
-    # sendp(bpdu, iface=args.iface, count=args.count, inter=2.0)
+        )        
+    if args.hex:
+        print("Generated BPDU Hex:")
+        hexdump(bpdu)
+    if args.verbose:
+        print("Generated BPDU Human Readable:")
+        bpdu.show()
+    sendp(bpdu, iface=args.iface, count=args.count, inter=args.inter, loop=args.loop)
