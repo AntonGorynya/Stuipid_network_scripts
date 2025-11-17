@@ -111,6 +111,7 @@ def generate_stp_bpdu(
     bridge_mac="00:00:00:00:00:01", root_mac="00:00:00:00:00:01",
     bridge_prio=32768, root_prio=32768, vlan_id=1, path_cost=0,
     port_prio=0x8000, port_num=1, flags=0x00, age=0, max_age=20,
+    fwddelay=15,
 ):
     payload = (
         LLC(dsap=0x42, ssap=0x42, ctrl=3)
@@ -124,6 +125,7 @@ def generate_stp_bpdu(
             bpduflags=flags,
             age=age,
             maxage=max_age,
+            fwddelay=fwddelay,
         )
     )
     return (
@@ -146,6 +148,7 @@ def generate_rstp_bpdu(
     bridge_mac="00:00:00:00:00:01", root_mac="00:00:00:00:00:01",
     bridge_prio=32768, root_prio=32768, vlan_id=1, path_cost=0,
     port_prio=0x8000, port_num=1, flags=0x00, age=0, max_age=20,
+    fwddelay=15,
 ):
     payload = (
         LLC(dsap=0x42, ssap=0x42, ctrl=3)
@@ -161,6 +164,7 @@ def generate_rstp_bpdu(
             bpduflags=flags,
             age=age,
             maxage=max_age,
+            fwddelay=fwddelay,
         )
         / Version1_Length()
     )
@@ -174,8 +178,9 @@ def generate_rpvst_bpdu(
     bridge_mac="00:00:00:00:00:01", root_mac="00:00:00:00:00:01",
     bridge_prio=32768, root_prio=32768, vlan_id=10, path_cost=0,
     port_prio=0x8000, port_num=1, flags=0x00, age=0, max_age=20,
+    fwddelay=15,
 ):
-    payload = (       
+    payload = (   
         LLC(dsap=0xAA, ssap=0xAA, ctrl=3)
         / SNAP(OUI=0x00000C, code=0x010B)
         / STP(
@@ -190,6 +195,7 @@ def generate_rpvst_bpdu(
             bpduflags=flags,
             age=age,
             maxage=max_age,
+            fwddelay=fwddelay,
         )
         / Version1_Length()
         / STP_OriginatingVLAN(vlan=vlan_id)
@@ -205,6 +211,7 @@ def generate_pvst_bpdu(
     bridge_mac="00:00:00:00:00:01", root_mac="00:00:00:00:00:01",
     bridge_prio=32768, root_prio=32768, vlan_id=10, path_cost=0,
     port_prio=0x8000, port_num=1, flags=0x00, age=0, max_age=20,
+    fwddelay=15,
 ):
     payload = (
         LLC(dsap=0xAA, ssap=0xAA, ctrl=3)
@@ -219,6 +226,7 @@ def generate_pvst_bpdu(
             bpduflags=flags,
             age=age,
             maxage=max_age,
+            fwddelay=fwddelay,
         )
         / Version1_Length()
         / STP_OriginatingVLAN(vlan=vlan_id)
@@ -291,7 +299,7 @@ def generate_mstp_bpdu(
     port_prio=0x8000, port_num=1, flags=0x00, name="",
     revision=1, instances=[],
     cist_internal_path_cost=0, cist_bridgeid=32768,
-    cist_remaining_hops=20, age=0, max_age=20,
+    cist_remaining_hops=20, age=0, max_age=20, fwddelay=15,
 ):
     src_mac = bridge_mac if src_mac is None else src_mac  # Отличается для деревьев MSTI, которые не совпадают с CIST
     instance_to_vlans = {
@@ -343,6 +351,7 @@ def generate_mstp_bpdu(
             bpduflags=flags,
             age=age,
             maxage=max_age,
+            fwddelay=fwddelay,
         )
         / Version1_Length()
         / mst_headers
@@ -379,7 +388,10 @@ def create_parser():
     parser.add_argument('--root_prio', default=32768,
                         help="Default value 32768 = 0x8000", type=int)
     parser.add_argument('--age', default=0, type=int, help="BPDU Age")
-    parser.add_argument('--max_age', default=20, type=int, help="BPDU Max Age")
+    parser.add_argument('--max_age', default=20, type=int,
+                        help="BPDU Max Age. Default = 20")
+    parser.add_argument('--fwd', default=15, type=int,
+                        help="Forwarding Delay. Default = 15")
     parser.add_argument('--vid', default=1, type=int)
     parser.add_argument('--path_cost', default=0,
                         help="path cost to root. Default = 0", type=int)
@@ -452,6 +464,7 @@ if __name__ == "__main__":
             flags=flags,
             age=args.age,
             max_age=args.max_age,
+            fwddelay=args.fwd,
 
         )
     if args.protocol == 'stp_tcn':
@@ -471,6 +484,7 @@ if __name__ == "__main__":
             flags=flags,
             age=args.age,
             max_age=args.max_age,
+            fwddelay=args.fwd,
         )
     if args.protocol == 'rstp':
         bpdu = generate_rstp_bpdu(
@@ -485,6 +499,7 @@ if __name__ == "__main__":
             flags=flags,
             age=args.age,
             max_age=args.max_age,
+            fwddelay=args.fwd,
         )
     if args.protocol == 'rpvst':
         bpdu = generate_rpvst_bpdu(
@@ -499,6 +514,7 @@ if __name__ == "__main__":
             flags=flags,
             age=args.age,
             max_age=args.max_age,
+            fwddelay=args.fwd,
         )
     if args.protocol == 'mstp':
         instance_params = []
@@ -535,6 +551,7 @@ if __name__ == "__main__":
             cist_remaining_hops=args.cist_remaining_hops,
             age=args.age,
             max_age=args.max_age,
+            fwddelay=args.fwd,
         )        
     if args.hex:
         print("Generated BPDU Hex:")
