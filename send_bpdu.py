@@ -85,7 +85,7 @@ class MSTI(Packet):
     name = "MSTID X"
     fields_desc = [
         ByteField("flags", 0),
-        ShortField("root_id", 0x8000),
+        ShortField("root_prio", 0x8000),
         MACField("root_mac", ETHER_ANY),
         IntField("path_cost", 0),
         ByteField("bridge_prio", 0x80),
@@ -310,7 +310,7 @@ def generate_mstp_bpdu(
     for instance in instances:    
         msti_headers /= MSTI(
             flags=instance['flags'],
-            root_id=int(instance['prio'])+int(instance['id']),
+            root_prio=int(instance['prio'])+int(instance['id']),
             root_mac=root_mac if instance['root_mac'] == '' else instance['root_mac'],
             path_cost=int(instance['path_cost']),
             bridge_prio=int(instance['bridge_prio']) >> 8,
