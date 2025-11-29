@@ -25,25 +25,23 @@ def gen_pkts_hash(packets):
     return hashes
 
 
-
 def compare_packets(packets1, packets2):
-    output_msg = ""
-    if not len(packets1):
-        output_msg += "File1 is empty."
-    else: 
-        output_msg += "File1 is not empty."
-    if not len(packets2):
-        output_msg += " File2 is empty."
-    else: 
-        output_msg += " File2 is not empty."
-    if len(packets1) != len(packets2):
-        return output_msg + " Different signature. Different length."
-    packets1_hashes = hash(tuple(sorted(gen_pkts_hash(packets1))))
-    packets2_hashes = hash(tuple(sorted(gen_pkts_hash(packets2))))
-
-    if packets1_hashes != packets2_hashes:
-        return output_msg + " Different signature."
-    return output_msg + " Same signature."
+    file1len = len(packets1)
+    file2len = len(packets2)
+    signature = "Diff"
+    packets1_hashes = None
+    packets2_hashes = None
+    if file1len == file2len:
+        packets1_hashes = hash(tuple(sorted(gen_pkts_hash(packets1))))
+        packets2_hashes = hash(tuple(sorted(gen_pkts_hash(packets2))))
+    if packets1_hashes == packets2_hashes:
+        signature = "Same"
+    return f"""
+        File1 Len: {file1len}
+        File2 Len: {file2len}
+        Total Len: {file1len+file2len}
+        Signature: {signature}
+        """
 
 
 if __name__ == "__main__":
