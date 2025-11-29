@@ -7,6 +7,10 @@ sudo python3 ./send_packets.py eth1 --mac_src '00:AA:CC:DD:EE:FF' --mac_dst 'B4:
 - compare_pcap.py - сравнение pcap файлов по hash-ам по полям mac, ip, port
 ```sh
 sudo python3 ./compare.py ./1.pcap ./2.pcap
+		    File1 Len: 63
+        File2 Len: 63
+        Total Len: 126
+        Signature: Same
 ```
 - send_bpdu.py - генерирует  BPDU выбранного проткола.
 ```sh
