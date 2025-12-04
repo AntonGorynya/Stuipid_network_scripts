@@ -8,10 +8,12 @@ def create_parser():
     )
     parser.add_argument("file1", help="path to pcap file")
     parser.add_argument("file2", help="path to pcap file")
+    parser.add_argument("-s", "--symmetric", action="store_true",
+                        help="swap src and dst headers before comparing")
     return parser
 
 
-def gen_pkts_hash(packets):
+def gen_pkts_hash(packets, swap=False):
     hashes = []
     for packet in packets:
         fields = [packet.src, packet.dst]
@@ -21,11 +23,14 @@ def gen_pkts_hash(packets):
                 fields.extend([packet["IP"]["TCP"].sport, packet["IP"]["TCP"].dport])
             if packet["IP"].haslayer("UDP"):
                 fields.extend([packet["IP"]["UDP"].sport, packet["IP"]["UDP"].dport])
+        if swap:
+            l = len(fields)
+            fields[1:l:2], fields[:l:2] = fields[:l:2], fields[1:l:2]
         hashes.append(hash(tuple(fields)))
     return hashes
 
 
-def compare_packets(packets1, packets2):
+def compare_packets(packets1, packets2, swap=False):
     file1len = len(packets1)
     file2len = len(packets2)
     signature = "Diff"
@@ -33,9 +38,9 @@ def compare_packets(packets1, packets2):
     packets2_hashes = None
     if file1len == file2len:
         packets1_hashes = hash(tuple(sorted(gen_pkts_hash(packets1))))
-        packets2_hashes = hash(tuple(sorted(gen_pkts_hash(packets2))))
-    if packets1_hashes == packets2_hashes:
-        signature = "Same"
+        packets2_hashes = hash(tuple(sorted(gen_pkts_hash(packets2, swap=swap))))
+        if packets1_hashes == packets2_hashes:
+            signature = "Same"
     return f"""
         File1 Len: {file1len}
         File2 Len: {file2len}
@@ -51,6 +56,7 @@ if __name__ == "__main__":
 
     packets1 = rdpcap(args.file1)
     packets2 = rdpcap(args.file2)
+    swap = args.symmetric
 
-    print(compare_packets(packets1, packets2))
+    print(compare_packets(packets1, packets2, swap=swap))
     print("--- %s seconds ---" % (time.time() - start_time))
