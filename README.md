@@ -14,7 +14,35 @@ sudo python3 ./compare.py ./1.pcap ./2.pcap
 ```
 - send_bpdu.py - генерирует  BPDU выбранного проткола.
 ```sh
-sudo python send_bpdu.py stp eth1 --bridge_mac "00:11:22:33:44:55" --port_num 77
+sudo python3 ./send_bpdu.py rstp eth1 --flags=124 --path_cost 10 -l -v
+Generated BPDU Human Readable:
+###[ Ethernet ]###
+  dst       = 01:80:c2:00:00:00
+  src       = 00:00:00:00:00:01
+  type      = 0x27
+###[ LLC ]###
+     dsap      = 0x42
+     ssap      = 0x42
+     ctrl      = 3
+###[ Spanning Tree Protocol ]###
+        proto     = 0
+        version   = 2
+        bpdutype  = 2
+        bpduflags = 124
+        rootid    = 32769
+        rootmac   = 00:00:00:00:00:01
+        pathcost  = 10
+        bridgeid  = 32769
+        bridgemac = 00:00:00:00:00:01
+        portid    = 32769
+        age       = 0
+        maxage    = 20
+        hellotime = 2
+        fwddelay  = 15
+###[ STP Version 1 length ]###
+           version1_length= 0
+###[ Padding ]###
+              load      = b'\x00\x00\x00\x00\x00\x00\x00'
 ```
 - nssa_lsa7 - снифает lsu после чего отправляет информацию про внешний маршрут
 ```sh
