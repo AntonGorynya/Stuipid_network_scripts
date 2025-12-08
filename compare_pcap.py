@@ -1,4 +1,5 @@
-import argparse, time
+import argparse
+import time
 from scapy.all import rdpcap
 
 
@@ -13,34 +14,29 @@ def create_parser():
     return parser
 
 
-def gen_pkts_hash(packets, swap=False):
-    hashes = []
-    for packet in packets:
-        fields = [packet.src, packet.dst]
-        if packet.haslayer("IP"):
-            fields.extend([packet["IP"].src, packet["IP"].dst])
-            if packet["IP"].haslayer("TCP"):
-                fields.extend([packet["IP"]["TCP"].sport, packet["IP"]["TCP"].dport])
-            if packet["IP"].haslayer("UDP"):
-                fields.extend([packet["IP"]["UDP"].sport, packet["IP"]["UDP"].dport])
-        if swap:
-            l = len(fields)
-            fields[1:l:2], fields[:l:2] = fields[:l:2], fields[1:l:2]
-        hashes.append(hash(tuple(fields)))
-    return hashes
-
-
-def compare_packets(packets1, packets2, swap=False):
+def compare_l3_packets(packets1, packets2, swap=False):
     file1len = len(packets1)
     file2len = len(packets2)
     signature = "Diff"
-    packets1_hashes = None
-    packets2_hashes = None
     if file1len == file2len:
-        packets1_hashes = hash(tuple(sorted(gen_pkts_hash(packets1))))
-        packets2_hashes = hash(tuple(sorted(gen_pkts_hash(packets2, swap=swap))))
-        if packets1_hashes == packets2_hashes:
-            signature = "Same"
+        signature = "Same"
+        packets1.sort()
+        packets2.sort()
+        for i in range(file1len):
+            packet1 = packets1[i]
+            packet2 = packets2[i]
+            p1_fields = [packet1.src, packet1.dst]
+            p2_fields = [packet2.src, packet2.dst]
+            if packet1["IP"].haslayer("TCP") or packet1["IP"].haslayer("UDP"):
+                p1_fields.extend([packet1.sport, packet1.dport])
+            if packet2["IP"].haslayer("TCP") or packet2["IP"].haslayer("UDP"):
+                p2_fields.extend([packet2.sport, packet2.dport])
+            if swap:
+                l = len(p2_fields)
+                p2_fields[1:l:2], p2_fields[:l:2] = p2_fields[:l:2], p2_fields[1:l:2]
+            if p2_fields != p1_fields:
+                signature = "Diff"
+                break
     return f"""
         File1 Len: {file1len}
         File2 Len: {file2len}
@@ -55,8 +51,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     packets1 = rdpcap(args.file1)
-    packets2 = rdpcap(args.file2)
+    packets2 = rdpcap(args.file2)    
     swap = args.symmetric
 
-    print(compare_packets(packets1, packets2, swap=swap))
+    print(compare_l3_packets(packets1, packets2, swap=swap))
     print("--- %s seconds ---" % (time.time() - start_time))
