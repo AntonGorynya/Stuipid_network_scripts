@@ -421,6 +421,8 @@ def create_parser():
                         help="Internal Path cost to CIST root. Default = 0")
     parser.add_argument('--cist_remaining_hops', type=int, default=20,
                         help="CIST remaining hops. Default = 20")
+    parser.add_argument('--cist_bridge_prio', default=32768,
+                        help="Default value 32768 = 0x8000", type=int)
     parser.add_argument(
         '--flags',
         default='0x00',
@@ -533,7 +535,8 @@ if __name__ == "__main__":
             for p in instance.split(' '):
                 k, v = p.split('=')
                 instance_param[k] = to_int(v) if k == 'flags' else v
-            instance_params.append(instance_param)
+            if instance_param['id'] != 0:
+                instance_params.append(instance_param)
         bpdu = generate_mstp_bpdu(
             src_mac=args.src_mac,
             bridge_mac=args.bridge_mac,
@@ -549,10 +552,11 @@ if __name__ == "__main__":
             instances=instance_params,
             cist_internal_path_cost=args.cist_internal_path_cost,
             cist_remaining_hops=args.cist_remaining_hops,
+            cist_bridgeid=args.cist_bridge_prio,
             age=args.age,
             max_age=args.max_age,
             fwddelay=args.fwd,
-        )        
+        )
     if args.hex:
         print("Generated BPDU Hex:")
         hexdump(bpdu)
