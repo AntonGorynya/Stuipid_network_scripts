@@ -34,6 +34,8 @@ def compare_l3_packets(packets1, packets2, swap=False):
             if swap:
                 l = len(p2_fields)
                 p2_fields[1:l:2], p2_fields[:l:2] = p2_fields[:l:2], p2_fields[1:l:2]
+            p1_fields.append(packet1["IP"].proto)
+            p2_fields.append(packet2["IP"].proto)
             if p2_fields != p1_fields:
                 signature = "Diff"
                 break
