@@ -17,18 +17,7 @@ import hmac
 import hashlib
 import struct
 
-# BPDU flags
-TC = 0x01
-TCA = 0x80
 
-FWD = 0x20
-LRN = 0x10
-DSG = 0xC
-BKP_ALT = 0x4
-ROOT = 0x8,
-
-PROPOSAL = 0x2
-AGREEMENT = 0x40
 
 MSTP_KEY = bytes.fromhex('13AC06A62E47FD51F95D2BA243CD0346')  # 802.1Q-2022
 
@@ -415,14 +404,12 @@ def create_parser():
                         -'bridge_prio'
                         -'port_prio'
                         -'remaining_hops'
+                        For Instance 0 (CIST) possible_keys:
+                        -'bridge_prio'
+                        -'path_cost'
+                        -'remaining_hops'
                         Examples: --instances  "id=1 vlan_ranges=1-10,20-30 flags=124 root_mac=00:11:22:33:44:55" "id=2 vlan_ranges=31-40"
                         """)  # не оч красиво, но лучше не придумал
-    parser.add_argument('--cist_internal_path_cost', type=int, default=0,
-                        help="Internal Path cost to CIST root. Default = 0")
-    parser.add_argument('--cist_remaining_hops', type=int, default=20,
-                        help="CIST remaining hops. Default = 20")
-    parser.add_argument('--cist_bridge_prio', default=32768,
-                        help="Default value 32768 = 0x8000", type=int)
     parser.add_argument(
         '--flags',
         default='0x00',
@@ -433,7 +420,10 @@ def create_parser():
             FWD = 0x20
             LRN = 0x10
             DSG = 0xC
+            BKP_ALT = 0x4
+            ROOT = 0x8,
             PROPOSAL = 0x2
+            AGREEMENT = 0x40
             """
     )
     parser.add_argument('-c', '--count', default=None, type=int,
@@ -520,6 +510,11 @@ if __name__ == "__main__":
         )
     if args.protocol == 'mstp':
         instance_params = []
+        cist_param = {
+            'path_cost': args.path_cost,
+            'remaining_hops': 20,
+            'bridge_prio': args.bridge_prio,  # 0x8000 -> 0x80
+        }
         for instance in args.instances:
             instance_param = {
                 'id': 0,
@@ -530,12 +525,16 @@ if __name__ == "__main__":
                 'path_cost': args.path_cost,
                 'bridge_prio': args.bridge_prio,  # 0x8000 -> 0x80
                 'port_prio': args.port_prio,
-                'remaining_hops': args.cist_remaining_hops,
+                'remaining_hops': 20,
             }
             for p in instance.split(' '):
                 k, v = p.split('=')
                 instance_param[k] = to_int(v) if k == 'flags' else v
-            if instance_param['id'] != 0:
+            if instance_param['id'] == "0":
+                cist_param['path_cost'] = int(instance_param['path_cost'])
+                cist_param['remaining_hops'] = instance_param['remaining_hops']
+                cist_param['bridge_prio'] = instance_param['bridge_prio']
+            if instance_param['id'] != "0":
                 instance_params.append(instance_param)
         bpdu = generate_mstp_bpdu(
             src_mac=args.src_mac,
@@ -550,9 +549,9 @@ if __name__ == "__main__":
             name=args.name,
             revision=args.revision,
             instances=instance_params,
-            cist_internal_path_cost=args.cist_internal_path_cost,
-            cist_remaining_hops=args.cist_remaining_hops,
-            cist_bridgeid=args.cist_bridge_prio,
+            cist_internal_path_cost=cist_param['path_cost'],
+            cist_remaining_hops=cist_param['remaining_hops'],
+            cist_bridgeid=cist_param['bridge_prio'],
             age=args.age,
             max_age=args.max_age,
             fwddelay=args.fwd,
